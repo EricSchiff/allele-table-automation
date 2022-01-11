@@ -1,2 +1,2 @@
 # allele-table-automation
-VBA code of macro created to perform automated web browsing to populate allele tables.
+VBA code of macro created to perform automated web browsing of LIMS site to populate allele tables.
