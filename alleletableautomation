@@ -1,0 +1,98 @@
+Sub AlleleTableCreation()
+ 
+Dim str_val As Object
+Dim rng As Range, cell_name As Range
+Dim irngcount As Integer
+Dim case_name As String
+Dim iCnt As Integer
+Dim uCnt As Integer
+Dim oHEle As HTMLUListElement
+Dim uHEle As HTMLUListElement
+'Identifies an open IE window with the title "Allele Table"
+marker = 0
+Set objShell = CreateObject("Shell.Application")
+IE_count = objShell.Windows.Count
+For x = 0 To (IE_count - 1)
+    On Error Resume Next
+    my_url = objShell.Windows(x).document.Location
+    my_title = objShell.Windows(x).document.Title
+
+    If my_title Like "Allele Table" & "*" Then
+        Set IE = objShell.Windows(x)
+        Exit For
+    Else
+    End If
+Next
+'Selects the range of cells containing the cases
+Set rng = Range("A2", Range("A2").End(xlDown)).Cells.SpecialCells(xlCellTypeVisible)
+irngcount = rng.Count
+If irngcount < 2 Then
+    MsgBox "Select at least 2 cases!"
+    Exit Sub
+End If
+For Each Cell In rng
+    case_name = Cell.Value
+    'goes through the drop down options and selects the option matching the case
+    Set dropOptions = IE.document.getElementById("MDdlCase")
+    For Each o In dropOptions.Options
+        If o.innerText = case_name Then
+            o.Selected = True
+            IE.document.getElementById("MDdlCase").FireEvent ("onchange")
+            Do While IE.readyState = 4: DoEvents: Loop
+            Do Until IE.readyState = 4: DoEvents: Loop
+            Exit For
+        End If
+    Next
+    'Allele Table Summary Screen - selects the samples here
+    Set oHEle = IE.document.getElementById("GridCompletedAlleles")
+    num_samples = oHEle.getElementsByTagName("th").Length
+    num_samples = num_samples - 1
+    'When both EF/SF present, LIMS adds in a column for the SF, the ad_sample accounts for this
+    ad_sample = 0
+    new_samp = 0
+    cnt_add = 0
+    For iCnt = 1 To (num_samples + ad_sample)
+        oHEle.getElementsByTagName("th").Item(iCnt + ad_sample).getElementsByTagName("a").Item(0).Click
+        Do While IE.readyState = 4: DoEvents: Loop
+        Do Until IE.readyState = 4: DoEvents: Loop
+        'Process Allele Calls Screen - will count number of profiles available to see if it needs to loop back
+        Set uHEle = IE.document.getElementById("GridAlleleTable")
+        num_profiles = uHEle.getElementsByTagName("tr").Item(5).getElementsByTagName("td").Length
+            
+        uHEle.getElementsByTagName("tr").Item(5).getElementsByTagName("td").Item(1).Click
+            
+        IE.document.getElementById("GridFinalAlleles_btnComplete_30").Click
+        IE.document.getElementById("GridFinalAlleles_btnComplete_31").Click
+        IE.document.getElementById("GridFinalAlleles_btnComplete_33").Click
+        Do While IE.readyState = 4: DoEvents: Loop
+        Do Until IE.readyState = 4: DoEvents: Loop
+            
+        If num_profiles > 2 Then
+            For uCnt = 2 To (num_profiles - 1)
+                Set oHEle = IE.document.getElementById("GridCompletedAlleles")
+                oHEle.getElementsByTagName("th").Item(iCnt + ad_sample).getElementsByTagName("a").Item(0).Click
+                
+                Do While IE.readyState = 4: DoEvents: Loop
+                Do Until IE.readyState = 4: DoEvents: Loop
+                Set uHEle = IE.document.getElementById("GridAlleleTable")
+                uHEle.getElementsByTagName("tr").Item(5).getElementsByTagName("td").Item(uCnt).Click
+                            
+                IE.document.getElementById("GridFinalAlleles_btnComplete_30").Click
+                IE.document.getElementById("GridFinalAlleles_btnComplete_31").Click
+                IE.document.getElementById("GridFinalAlleles_btnComplete_33").Click
+                Do While IE.readyState = 4: DoEvents: Loop
+                Do Until IE.readyState = 4: DoEvents: Loop
+            Next
+        End If
+        Set oHEle = IE.document.getElementById("GridCompletedAlleles")
+        new_samp = oHEle.getElementsByTagName("th").Length
+        new_samp = new_samp - 1
+        ad_sample = new_samp - num_samples
+        
+    Next
+    
+Next
+
+
+End Sub
+
